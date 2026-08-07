@@ -63,6 +63,30 @@ def get_board(league_id: str):
     return built
 
 
+@app.on_event("startup")
+def _prewarm() -> None:
+    """Build the board in the background as soon as the process starts.
+
+    On a host that sleeps, the container spin-up is out of our hands, but the
+    ~10s board build does not have to sit in the critical path on top of it.
+    Warming it on boot means that by the time a woken instance serves its
+    first real page the data is usually ready.
+
+    Failures are swallowed on purpose: this is an optimisation, and a cold
+    build will simply happen on demand instead.
+    """
+    import threading
+
+    def warm():
+        for lid in leagues.LEAGUES:
+            try:
+                get_board(lid)
+            except Exception:
+                pass
+
+    threading.Thread(target=warm, daemon=True).start()
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request, bad: int = 0):
     return TEMPLATES.TemplateResponse(
