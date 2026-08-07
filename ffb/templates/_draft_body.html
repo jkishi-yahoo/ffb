@@ -1,0 +1,75 @@
+{% if not draft %}
+  <div class="card">
+    <strong>Start a draft</strong>
+    <p class="note">
+      {{ league.draft_type }}{% if league.draft_time %} · {{ league.draft_time }}{% endif %}.
+      Picks are entered by hand — the only option for an offline draft, and the
+      fallback for a live one until Yahoo API access is approved.
+    </p>
+    <form method="post" action="/draft/start" class="row">
+      <input type="hidden" name="league" value="{{ league_id }}">
+      <label class="note">Your draft slot
+        <select name="my_slot" style="width:auto">
+          {% for i in range(1, league.num_teams + 1) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="note">Rounds
+        <input type="number" name="rounds" value="15" min="1" max="30" style="width:80px">
+      </label>
+      <button type="submit" style="padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--accent);color:#fff">Start</button>
+    </form>
+  </div>
+{% else %}
+  <div class="row" style="margin-bottom:12px">
+    <div class="card" style="margin:0;flex:1 1 200px">
+      <div class="note">Round {{ round }} · pick {{ made + 1 }} overall</div>
+      <div style="font-size:20px;font-weight:700;{% if my_turn %}color:var(--good){% endif %}">
+        {% if my_turn %}You are on the clock{% else %}Slot {{ on_clock }} picking{% endif %}
+      </div>
+      <div class="note">Your slot {{ draft.my_slot }}{% if next_pick %} · your next pick is #{{ next_pick }}{% endif %}</div>
+    </div>
+    <div class="card" style="margin:0;flex:1 1 260px">
+      <div class="note">Still need to start</div>
+      <div>{% for pos, n in needs.items() %}{% if n > 0 %}<span class="pill">{{ pos }} ×{{ n }}</span> {% endif %}{% endfor %}
+        {% if needs.values() | sum == 0 %}<span class="note">starters full — best available</span>{% endif %}</div>
+    </div>
+  </div>
+
+  <form hx-post="/draft/pick" hx-target="#draftbody" class="row" style="margin-bottom:14px">
+    <input type="hidden" name="league" value="{{ league_id }}">
+    <input class="grow" name="player" list="players" placeholder="Type the player just taken, then Enter" autofocus autocomplete="off">
+    <button type="submit" style="padding:9px 16px;border-radius:8px;border:1px solid var(--line);background:var(--accent);color:#fff">Record pick</button>
+    <button type="button" hx-post="/draft/undo" hx-target="#draftbody" hx-include="closest form"
+            style="padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text)">Undo</button>
+  </form>
+  <datalist id="players">
+    {% for r in recs %}<option value="{{ r.player }}">{% endfor %}
+  </datalist>
+
+  <h2 style="font-size:15px;margin:0 0 8px">Recommended {% if my_turn %}— you're up{% else %}(if it comes back to you){% endif %}</h2>
+  {% for r in recs %}
+    <div class="card" style="margin-top:8px;{% if loop.first %}border-color:var(--accent){% endif %}">
+      <div class="row">
+        <strong>{{ r.player }}</strong>
+        <span class="pos {{ r.position }}">{{ r.position }}</span>
+        <span class="note">{{ r.team }}{% if r.bye == r.bye %} · bye {{ r.bye | int }}{% endif %}</span>
+        <span class="grow"></span>
+        <span class="note">{{ "%.1f" | format(r.ppg) }} ppg · {{ "%+.1f" | format(r.vor) }} VOR · tier {{ r.tier }}</span>
+      </div>
+      <div class="note">{{ r.reasons | join(" · ") }}</div>
+    </div>
+  {% endfor %}
+  {% if not recs %}<p class="note">No players available.</p>{% endif %}
+
+  <div class="card">
+    <strong>Your roster ({{ my_players | length }})</strong>
+    <div>{% for p in my_players %}<span class="pill">{{ p.position }} {{ p.player_display_name }}{% if p.bye == p.bye %} (b{{ p.bye | int }}){% endif %}</span> {% endfor %}
+      {% if not my_players %}<span class="note">empty</span>{% endif %}</div>
+  </div>
+
+  <div class="card">
+    <strong>Recent picks</strong>
+    <div class="note">{% for p in picks[:24] %}#{{ p.overall }} {{ p.player }}{% if not loop.last %} · {% endif %}{% endfor %}
+      {% if not picks %}none yet{% endif %}</div>
+  </div>
+{% endif %}

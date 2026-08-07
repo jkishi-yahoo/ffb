@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}FFB — draft{% endblock %}
+{% block body %}
+<header>
+  <div class="row">
+    <h1>FFB</h1>
+    <a href="/?league={{ league_id }}">Board</a>
+    <span class="note">·</span>
+    <strong>Draft</strong>
+    <span class="grow"></span>
+    <span class="note">{{ league.name }}</span>
+    <a href="/logout" class="note">Log out</a>
+  </div>
+</header>
+<main id="draftbody">
+  {% include "_draft_body.html" %}
+</main>
+{% endblock %}

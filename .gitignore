@@ -24,3 +24,6 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Local web dashboard
+data/drafts.db

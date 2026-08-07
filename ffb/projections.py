@@ -75,7 +75,9 @@ def player_multi_season_points(seasons, league: League,
             "latest_season": int(grp.season.max()),
         })
 
-    out = allrows.groupby("player_id").apply(agg).reset_index()
+    cols = ["player_display_name", "position", "ppg", "weight",
+            "games_played", "season"]
+    out = allrows.groupby("player_id")[cols].apply(agg).reset_index()
     return out.sort_values("ppg", ascending=False).reset_index(drop=True)
 
 

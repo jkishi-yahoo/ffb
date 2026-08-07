@@ -71,30 +71,48 @@ def add_vor(df: pd.DataFrame, league: League,
     return out.sort_values("vor", ascending=False).reset_index(drop=True)
 
 
+TARGET_TIERS = 7
+
+
 def add_tiers(df: pd.DataFrame, by: str = "vor",
-              gap_multiplier: float = 1.0) -> pd.DataFrame:
+              target_tiers: int = TARGET_TIERS) -> pd.DataFrame:
     """Group players into tiers per position, breaking where value drops.
 
-    A tier break is a gap between consecutive players larger than the mean gap
-    plus `gap_multiplier` standard deviations. Tiers matter more than raw rank
-    on draft day: the question is rarely "who is best" but "does waiting a
-    round cost me a tier".
+    The break threshold is scaled to each position's *starter-range* spread,
+    not to the statistics of the whole pool. Using mean-gap-plus-a-deviation
+    over every player made the long flat tail dominate the mean, so each elite
+    player became their own tier — 27 WR tiers with the top six all singletons.
+    That is a ranking wearing a tier costume, and it makes "last in tier" fire
+    constantly and mean nothing.
+
+    Tiers exist to answer one draft-day question: does waiting a round cost me
+    a meaningful step down? So the threshold is the value span across the
+    players who actually matter, divided by how many tiers are useful.
     """
     out = df.copy()
-    out["tier"] = 0
+    out["tier"] = 1
     for pos, grp in out.groupby("position"):
         grp = grp.sort_values(by, ascending=False)
         vals = grp[by].to_numpy()
         if len(vals) < 3:
             out.loc[grp.index, "tier"] = 1
             continue
-        gaps = vals[:-1] - vals[1:]
-        threshold = gaps.mean() + gap_multiplier * gaps.std()
-        tier = 1
-        tiers = [tier]
-        for gap in gaps:
-            if gap > threshold:
+        # Spread measured over above-replacement players only; below that
+        # everyone is interchangeable and belongs in one bucket anyway.
+        relevant = vals[vals > 0]
+        span = float(relevant[0] - relevant[-1]) if len(relevant) > 1 else float(vals[0] - vals[-1])
+        threshold = span / target_tiers if span > 0 else float("inf")
+
+        # Break on distance from the TOP of the current tier, not on the gap
+        # to the immediately preceding player. In a pool of 384 WRs every
+        # consecutive gap is tiny, so gap-based breaks produced one giant
+        # tier. Measuring from the tier's leader keeps each tier to a bounded
+        # value range, which is what "same tier" is supposed to mean.
+        tier, tiers, tier_top = 1, [1], vals[0]
+        for val in vals[1:]:
+            if (tier_top - val) > threshold:
                 tier += 1
+                tier_top = val
             tiers.append(tier)
         out.loc[grp.index, "tier"] = tiers
     return out

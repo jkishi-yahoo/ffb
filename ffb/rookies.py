@@ -115,7 +115,7 @@ def fit_curve(league: League) -> pd.DataFrame:
     the position mean rather than trusted at face value.
     """
     train = training_table(league)
-    pos_means = train.groupby("position").apply(
+    pos_means = train.groupby("position")[["ppg", "relevant"]].apply(
         lambda g: pd.Series({
             "pos_ppg": g.loc[g.relevant, "ppg"].mean() if g.relevant.any() else 0.0,
             "pos_hit": g.relevant.mean(),

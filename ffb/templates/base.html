@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}FFB{% endblock %}</title>
+<!-- vendored, not a CDN: the draft-day dashboard must work if wifi drops -->
+<script src="/static/htmx.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --line: #262b36;
+    --text: #e6e9ef; --muted: #8b94a7; --accent: #4da3ff;
+    --good: #4ade80; --warn: #fbbf24; --bad: #f87171;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7f8fa; --panel: #fff; --line: #e3e6ec;
+      --text: #171a21; --muted: #667085; --accent: #0b6bcb;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5; background: var(--panel);
+    border-bottom: 1px solid var(--line); padding: 10px 14px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1 1 160px; }
+  h1 { font-size: 16px; margin: 0 12px 0 0; letter-spacing: .3px; }
+  a { color: var(--accent); }
+  select, input[type=search], input[type=password] {
+    background: var(--bg); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 15px; width: 100%;
+  }
+  main { padding: 14px; max-width: 1100px; margin: 0 auto; }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  tbody tr:hover { background: var(--panel); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pill { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .pos { font-weight: 700; }
+  .QB { color: #f472b6 } .RB { color: #4ade80 } .WR { color: #60a5fa }
+  .TE { color: #fbbf24 } .K { color: #a78bfa } .DEF { color: #f87171 }
+  .note { color: var(--muted); font-size: 13px; }
+  .warn { color: var(--warn); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+  .banner { background: #3b2a12; border: 1px solid #7c5e1e; color: #fde68a; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

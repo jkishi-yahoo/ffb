@@ -1,0 +1,38 @@
+<table>
+  <thead>
+    <tr>
+      <th>#</th><th>Player</th><th>Pos</th><th>Team</th><th class="num">Bye</th>
+      <th class="num">PPG</th><th class="num">VOR</th><th class="num">Tier</th>
+      <th>Value from</th><th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td class="num note">{{ loop.index }}</td>
+      <td>{{ r.player_display_name }}</td>
+      <td class="pos {{ r.position }}">{{ r.position }}</td>
+      <td>{{ r.team or "—" }}</td>
+      <td class="num">{{ r.bye | int if r.bye == r.bye else "—" }}</td>
+      <td class="num">{{ "%.1f" | format(r.ppg) }}</td>
+      <td class="num">{{ "%+.1f" | format(r.vor) }}</td>
+      <td class="num">{{ r.tier }}</td>
+      <td>
+        {% if r.value_source == "draft capital" %}
+          <span class="pill">draft capital{% if r.hit_rate == r.hit_rate %}
+            · {{ "%.0f" | format(r.hit_rate * 100) }}% hit{% endif %}</span>
+        {% elif r.value_source == "production" %}
+          <span class="pill">{{ r.seasons_used | int if r.seasons_used == r.seasons_used else "?" }}
+            season{{ "s" if r.seasons_used and r.seasons_used > 1 else "" }}</span>
+        {% else %}
+          <span class="pill warn">no data</span>
+        {% endif %}
+      </td>
+      <td class="note">{{ r.injury_status if r.injury_status == r.injury_status else "" }}</td>
+    </tr>
+  {% endfor %}
+  {% if not rows %}
+    <tr><td colspan="10" class="note">No players match.</td></tr>
+  {% endif %}
+  </tbody>
+</table>

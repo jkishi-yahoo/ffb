@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}FFB — {{ league.name }}{% endblock %}
+{% block body %}
+<header>
+  <div class="row">
+    <h1>FFB</h1>
+    <select name="league" hx-get="/" hx-target="#rows" hx-include="closest header"
+            hx-push-url="true" style="width:auto">
+      {% for lid, lg in leagues.items() %}
+        <option value="{{ lid }}" {% if lid == league_id %}selected{% endif %}>
+          {{ lg.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <select name="pos" hx-get="/" hx-target="#rows" hx-include="closest header"
+            style="width:auto">
+      <option value="">All positions</option>
+      {% for p in ["QB","RB","WR","TE","K","DEF"] %}
+        <option value="{{ p }}" {% if p == pos %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+    <input class="grow" type="search" name="q" value="{{ q }}"
+           placeholder="Search player…"
+           hx-get="/" hx-target="#rows" hx-include="closest header"
+           hx-trigger="keyup changed delay:250ms, search">
+    <a href="/draft?league={{ league_id }}">Draft</a>
+    <a href="/logout" class="note">Log out</a>
+  </div>
+</header>
+
+<main>
+  {% if no_pin %}
+  <div class="banner">
+    <strong>No PIN set.</strong> This dashboard is reachable by anything on your
+    network and can read your Yahoo data. Set <code>FFB_PIN</code> in
+    <code>.env</code> and restart.
+  </div>
+  {% endif %}
+
+  <p class="note">
+    {{ league.num_teams }}-team · {{ league.draft_type }}
+    {%- if league.draft_time %} · drafts {{ league.draft_time }}{% endif %} ·
+    roster QB/RB×2/WR×3/TE/flex/K/DEF + 5 bench
+  </p>
+
+  <div class="scroll" id="rows">
+    {% include "_rows.html" %}
+  </div>
+
+  <div class="card">
+    <strong>How these numbers are built</strong>
+    <p class="note">
+      Every value is scored under <em>this league's</em> rules — full PPR,
+      4pt pass TD, INT −2, DST sack 2 and TFL 0.5 — not generic rankings.
+      VOR is measured against replacement level for this exact roster shape,
+      so 3 WR plus a flex pushes WR replacement past WR36.
+    </p>
+    <p class="note">
+      {{ coverage.players }} players ·
+      {{ coverage.from_production }} valued from production (recency-weighted
+      {{ baseline_seasons | join("/") }}) ·
+      {{ coverage.from_draft_capital }} from draft capital ·
+      {{ coverage.unvalued }} unvalued.
+      Rookies are projected from draft capital and ranked on
+      expected value × hit rate, so a boom/bust flier does not outrank a safe
+      starter on upside alone.
+    </p>
+    {% if unverified %}
+    <p class="note"><strong>Unverified:</strong>
+      {% for u in unverified %}{{ u }}{% if not loop.last %}; {% endif %}{% endfor %}
+    </p>
+    {% endif %}
+    <p class="note"><strong>Not scored:</strong>
+      {% for label, why in gaps %}{{ label }}{% if not loop.last %}; {% endif %}{% endfor %}
+    </p>
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}FFB — sign in{% endblock %}
+{% block body %}
+<main style="max-width:360px;margin-top:12vh">
+  <h1>FFB</h1>
+  <p class="note">This dashboard is reachable from your home network, so it
+  asks for a PIN.</p>
+  {% if bad %}<p class="warn">Wrong PIN — try again.</p>{% endif %}
+  <form method="post" action="/login">
+    <p><input type="password" name="pin" placeholder="PIN" autofocus
+              autocomplete="current-password" inputmode="numeric"></p>
+    <p><button type="submit" style="width:100%;padding:10px;border-radius:8px;
+       border:1px solid var(--line);background:var(--accent);color:#fff;
+       font-size:15px">Enter</button></p>
+  </form>
+</main>
+{% endblock %}
