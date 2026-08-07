@@ -1,0 +1,26 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.token
+*.tokens
+tokens.json
+credentials.json
+
+# Local data / caches
+data/
+*.db
+*.sqlite
+*.sqlite3
+.cache/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
