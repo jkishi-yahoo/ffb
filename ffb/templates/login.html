@@ -5,7 +5,8 @@
   <h1>FFB</h1>
   <p class="note">This dashboard is reachable from your home network, so it
   asks for a PIN.</p>
-  {% if bad %}<p class="warn">Wrong PIN — try again.</p>{% endif %}
+  {% if bad == 1 %}<p class="warn">Wrong PIN — try again.</p>{% endif %}
+  {% if bad == 2 %}<p class="warn">Too many attempts. Wait 5 minutes.</p>{% endif %}
   <form method="post" action="/login">
     <p><input type="password" name="pin" placeholder="PIN" autofocus
               autocomplete="current-password" inputmode="numeric"></p>

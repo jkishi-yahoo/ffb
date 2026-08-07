@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
+# Writable state (data cache, SQLite draft log, token file when not using the
+# Keychain). On Render this must point at a mounted disk — everything else on
+# the container filesystem is wiped on every deploy.
+DATA_DIR = Path(os.getenv("FFB_DATA_DIR", str(ROOT / "data"))).expanduser()
+
 CLIENT_ID = os.getenv("YAHOO_CLIENT_ID", "").strip()
 CLIENT_SECRET = os.getenv("YAHOO_CLIENT_SECRET", "").strip()
 REDIRECT_URI = os.getenv("YAHOO_REDIRECT_URI", "oob").strip() or "oob"

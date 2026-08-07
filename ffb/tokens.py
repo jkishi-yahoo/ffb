@@ -13,7 +13,7 @@ from . import config
 
 SERVICE = "ffb-yahoo-fantasy"
 ACCOUNT = "default"
-FILE_PATH = config.ROOT / ".ffb_tokens.json"
+FILE_PATH = config.DATA_DIR / ".ffb_tokens.json"
 
 
 def _use_keychain() -> bool:
@@ -28,6 +28,7 @@ def save(tokens: dict) -> None:
         keyring.set_password(SERVICE, ACCOUNT, blob)
         return
     # Create with 0600 from the start — don't write then chmod.
+    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     fd = os.open(FILE_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
     with os.fdopen(fd, "w") as fh:
         fh.write(blob)

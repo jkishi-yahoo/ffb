@@ -1,0 +1,18 @@
+<header>
+  <div class="row">
+    <span class="brand">FFB</span>
+    <nav>
+      <a href="/?league={{ league_id }}" class="{{ 'on' if page == 'board' }}">Board</a>
+      <a href="/draft?league={{ league_id }}" class="{{ 'on' if page == 'draft' }}">Draft</a>
+      <a href="/waivers?league={{ league_id }}" class="{{ 'on' if page == 'waivers' }}">Waivers</a>
+      <a href="/trades?league={{ league_id }}" class="{{ 'on' if page == 'trades' }}">Trades</a>
+    </nav>
+    <span class="grow"></span>
+    <select onchange="location.href='/{{ page if page != 'board' else '' }}?league='+this.value" style="width:auto">
+      {% for lid, lg in leagues.items() %}
+        <option value="{{ lid }}" {% if lid == league_id %}selected{% endif %}>{{ lg.name }}</option>
+      {% endfor %}
+    </select>
+    <a href="/logout" class="note">Log out</a>
+  </div>
+</header>

@@ -1,0 +1,23 @@
+<div class="empty">
+  <h2>{{ title }}</h2>
+  <p>{{ blurb }}</p>
+  {% if conn.reason == 'not_approved' %}
+    <p class="warn">Yahoo has not approved Fantasy API access for this app yet.</p>
+    <ol class="step">
+      <li>Apply at <a href="https://sports.yahoo.com/developer/access/">sports.yahoo.com/developer/access</a></li>
+      <li>Watch <code>jkishi10@yahoo.com</code> for their reply</li>
+      <li>This page fills in automatically once approved — nothing to rebuild</li>
+    </ol>
+  {% elif conn.reason == 'not_logged_in' %}
+    <p>Not logged in to Yahoo.</p>
+    <ol class="step"><li>Run <code>python -m ffb.cli login</code></li></ol>
+  {% elif conn.reason == 'no_credentials' %}
+    <p>No Yahoo credentials configured.</p>
+    <ol class="step"><li>Add <code>YAHOO_CLIENT_ID</code> and <code>YAHOO_CLIENT_SECRET</code> to <code>.env</code></li></ol>
+  {% else %}
+    <p class="warn">{{ conn.detail }}</p>
+  {% endif %}
+  <p class="note" style="margin-top:18px">
+    The Draft page works right now — it runs on public data and manual pick entry.
+  </p>
+</div>

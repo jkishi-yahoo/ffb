@@ -173,3 +173,97 @@ def league_settings(league_key: str) -> dict:
     """Raw settings incl. roster_positions and stat_modifiers (scoring)."""
     data = get("league/{}/settings".format(league_key))
     return merge(_find(data, "league") or {})
+
+
+# --------------------------------------------------------------------------
+# Roster / player-pool reads. These are what the waiver and trade features
+# need, and they are the reason API approval matters.
+# --------------------------------------------------------------------------
+PAGE_SIZE = 25  # Yahoo's players collection caps out around here per request
+
+
+def league_teams(league_key: str) -> List[dict]:
+    """Every team in the league, with its manager name."""
+    data = get("league/{}/teams".format(league_key))
+    out = []
+    for tm in numeric_items(_find(data, "teams") or {}):
+        info = merge(tm.get("team", tm))
+        if info.get("team_key"):
+            out.append(info)
+    return out
+
+
+def team_roster(team_key: str, week: Optional[int] = None) -> List[dict]:
+    """One team's current roster."""
+    path = "team/{}/roster".format(team_key)
+    if week:
+        path += ";week={}".format(week)
+    data = get(path)
+    players = []
+    for pl in numeric_items(_find(data, "players") or {}):
+        info = merge(pl.get("player", pl))
+        if info.get("player_key"):
+            players.append(_normalise_player(info))
+    return players
+
+
+def all_rosters(league_key: str) -> Dict[str, List[dict]]:
+    """team_key -> roster, for every manager in the league.
+
+    This is what makes trade analysis possible: without it there is no way to
+    know what the other managers actually have.
+    """
+    out = {}
+    for team in league_teams(league_key):
+        out[team["team_key"]] = team_roster(team["team_key"])
+    return out
+
+
+def available_players(league_key: str, status: str = "A",
+                      max_players: int = 600) -> List[dict]:
+    """Players available in the league.
+
+    status: 'A' available (free agents + waivers), 'FA' free agents only,
+            'W' on waivers, 'T' taken.
+
+    Paginates because Yahoo returns a fixed page size regardless of `count`.
+    Stops on a short page, so an unexpectedly small pool ends the loop rather
+    than spinning.
+    """
+    players, start = [], 0
+    while start < max_players:
+        data = get("league/{}/players;status={};start={};count={}".format(
+            league_key, status, start, PAGE_SIZE))
+        page = list(numeric_items(_find(data, "players") or {}))
+        if not page:
+            break
+        for pl in page:
+            info = merge(pl.get("player", pl))
+            if info.get("player_key"):
+                players.append(_normalise_player(info))
+        if len(page) < PAGE_SIZE:
+            break
+        start += PAGE_SIZE
+    return players
+
+
+def _normalise_player(info: dict) -> dict:
+    """Flatten Yahoo's player shape into the fields the app actually uses."""
+    name = info.get("name")
+    if isinstance(name, dict):
+        full = name.get("full")
+    else:
+        full = name
+    pos = info.get("display_position") or info.get("primary_position")
+    return {
+        "player_key": info.get("player_key"),
+        "player_id": info.get("player_id"),
+        "yahoo_id": info.get("player_id"),
+        "name": full,
+        "position": pos,
+        "team": info.get("editorial_team_abbr"),
+        "status": info.get("status"),           # IR, O, Q, etc.
+        "percent_owned": info.get("percent_owned"),
+        "bye": (info.get("bye_weeks") or {}).get("week")
+        if isinstance(info.get("bye_weeks"), dict) else None,
+    }

@@ -17,7 +17,7 @@ import pandas as pd
 
 from . import config
 
-CACHE = config.ROOT / "data"
+CACHE = config.DATA_DIR
 NFLVERSE = "https://github.com/nflverse/nflverse-data/releases/download"
 SLEEPER_PLAYERS = "https://api.sleeper.app/v1/players/nfl"
 

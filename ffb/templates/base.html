@@ -50,6 +50,26 @@
   .warn { color: var(--warn); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
   .banner { background: #3b2a12; border: 1px solid #7c5e1e; color: #fde68a; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav a {
+    padding: 7px 14px; border-radius: 8px; text-decoration: none;
+    color: var(--muted); font-weight: 600; font-size: 14px;
+    border: 1px solid transparent;
+  }
+  nav a:hover { color: var(--text); background: var(--bg); }
+  nav a.on { color: var(--text); background: var(--bg); border-color: var(--line); }
+  .brand { font-size: 15px; font-weight: 800; letter-spacing: .5px; margin-right: 6px; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty h2 { color: var(--text); font-size: 17px; margin: 0 0 8px; }
+  .step { text-align: left; max-width: 520px; margin: 14px auto 0; }
+  .step li { margin: 6px 0; }
+  code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; font-size: 13px; }
+  .rec { border-left: 3px solid var(--accent); }
+  .why { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .metric { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .up { color: var(--good) } .down { color: var(--bad) }
+  .bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 6px; }
+  .bar > span { display: block; height: 100%; background: var(--accent); }
 </style>
 </head>
 <body>

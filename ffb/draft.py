@@ -24,13 +24,13 @@ import pandas as pd
 from . import config
 from .leagues import League
 
-DB_PATH = config.ROOT / "data" / "drafts.db"
+DB_PATH = config.DATA_DIR / "drafts.db"
 
 FLEX_ELIGIBLE = ("WR", "RB", "TE")
 
 
 def _conn() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(exist_ok=True)
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("""

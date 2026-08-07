@@ -1,0 +1,45 @@
+# Render blueprint. Create the service from this file, then set the secret
+# env vars in the Render dashboard (never in this file — it is committed).
+#
+# NOTE ON PLAN: `disk` requires a paid instance. On the free plan the service
+# sleeps after 15 minutes and has NO persistent disk, which means:
+#   - OAuth tokens are lost on every restart, so you re-authorise each time
+#   - the data cache is lost, so the first request after waking takes ~10s
+# That is livable for a weekly waiver check and a bad idea on draft day.
+# Start on `starter` for the week of the draft; downgrade after if you like.
+services:
+  - type: web
+    name: ffb
+    runtime: python
+    plan: starter          # `free` works, but see the note above
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn ffb.web:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: ffb-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      # Writable state lives on the mounted disk; the rest of the container
+      # filesystem is replaced on every deploy.
+      - key: FFB_DATA_DIR
+        value: /var/data
+      # There is no macOS Keychain on Linux, so tokens go to a 0600 file on
+      # the persistent disk.
+      - key: FFB_TOKEN_STORE
+        value: file
+      # Set these in the dashboard, not here.
+      - key: YAHOO_CLIENT_ID
+        sync: false
+      - key: YAHOO_CLIENT_SECRET
+        sync: false
+      # Must exactly match a Redirect URI registered on the Yahoo app, e.g.
+      # https://ffb.onrender.com/auth/callback
+      - key: YAHOO_REDIRECT_URI
+        sync: false
+      # This URL is public. Use a long random string, not a 4-digit PIN.
+      - key: FFB_PIN
+        sync: false

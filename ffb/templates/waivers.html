@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}FFB — waivers{% endblock %}
+{% block body %}
+{% include "_nav.html" %}
+<main>
+  {% if not conn.connected %}
+    {% set title = "Waiver wire needs your live roster" %}
+    {% set blurb = "To rank pickups I need to know who is on your team, who is on everyone else's, and who is actually available — all of which come from Yahoo." %}
+    {% include "_yahoo_gate.html" %}
+  {% else %}
+    <div class="row" style="margin-bottom:8px">
+      <h2 style="font-size:16px;margin:0">Waiver targets · week {{ week }}</h2>
+      <span class="grow"></span>
+      <span class="note">{{ league.waiver_type }}</span>
+    </div>
+    {% for r in recs %}
+      <div class="card rec">
+        <div class="row">
+          <strong>{{ r.name }}</strong>
+          <span class="pos {{ r.position }}">{{ r.position }}</span>
+          <span class="note">{{ r.team }}{% if r.bye %} · bye {{ r.bye }}{% endif %}</span>
+          <span class="grow"></span>
+          <span class="metric {{ 'up' if r.upgrade > 0 else 'down' }}">{{ "%+.1f" | format(r.upgrade) }} ppg</span>
+        </div>
+        <div class="why">{{ r.reasons | join(" · ") }}</div>
+        <div class="why">
+          <strong>Drop:</strong>
+          {% if r.drop %}{{ r.drop.name }} ({{ r.drop.position }}, {{ "%.1f" | format(r.drop.ppg) }} ppg){% else %}nobody — open bench spot{% endif %}
+        </div>
+        <div class="why"><strong>Claim:</strong> {{ r.priority_advice }}</div>
+      </div>
+    {% endfor %}
+    {% if not recs %}<p class="note">Nothing on the wire beats what you have.</p>{% endif %}
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}FFB — trades{% endblock %}
+{% block body %}
+{% include "_nav.html" %}
+<main>
+  {% if not conn.connected %}
+    {% set title = "Trade analysis needs every manager's roster" %}
+    {% set blurb = "To find a trade that helps you AND gives the other manager a reason to accept, I need to see what all 12 teams actually have. That only comes from the Yahoo API." %}
+    {% include "_yahoo_gate.html" %}
+  {% else %}
+    <h2 style="font-size:16px;margin:0 0 8px">Trade proposals</h2>
+    <p class="note">Ranked by acceptance likelihood × how much they improve your
+    starting lineup. Gains are starting-lineup ppg, not roster totals — a trade
+    that improves your bench does not improve your Sunday.</p>
+    {% for t in proposals %}
+      <div class="card rec">
+        <div class="row">
+          <strong>{{ t.team_name }}</strong>
+          <span class="grow"></span>
+          <span class="metric up">you {{ "%+.1f" | format(t.my_gain) }}</span>
+          <span class="note">·</span>
+          <span class="metric">them {{ "%+.1f" | format(t.their_gain) }}</span>
+        </div>
+        <div style="margin:8px 0">
+          <span class="pill">give {{ t.give | join(", ") }}</span>
+          →
+          <span class="pill">get {{ t.get | join(", ") }}</span>
+        </div>
+        <div class="why"><strong>Why it helps you:</strong> {{ t.why_me }}</div>
+        <div class="why"><strong>Why they might accept:</strong> {{ t.why_them }}</div>
+        <div class="why">Acceptance likelihood {{ "%.0f" | format(t.acceptance * 100) }}%</div>
+        <div class="bar"><span style="width:{{ (t.acceptance * 100) | round }}%"></span></div>
+      </div>
+    {% endfor %}
+    {% if not proposals %}<p class="note">No trades found where both sides gain. That usually means your roster is balanced relative to the league.</p>{% endif %}
+  {% endif %}
+</main>
+{% endblock %}
