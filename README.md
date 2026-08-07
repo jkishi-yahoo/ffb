@@ -71,10 +71,17 @@ counts and a Client ID and says their team reviews each submission. Whether
 Fantasy API access actually requires that approval, or still works implicitly
 for any app, is **unverified**.
 
-Test empirically before applying: create the app, then run `ffb.cli teams`.
-If teams print, no application is needed. If it 401s/403s, submit the access
-form — and note there is no published approval timeline, so apply early
-relative to any draft date.
+**Verified 2026-08-07: approval IS required.** With a valid token from a
+freshly created app, every Fantasy endpoint returns:
+
+```
+401 oauth_problem="additional_authorization_required"
+```
+
+This fails even on `game/nfl` (public, league-agnostic), so it is an app-level
+entitlement, not a private-league permission. OAuth itself works fine — the app
+simply is not allowlisted for Fantasy Sports data until Yahoo approves the
+access request.
 
 ### 2. Configure
 

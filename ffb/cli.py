@@ -1,8 +1,13 @@
 """Phase 0 CLI: log in to Yahoo and read real team data.
 
-    python -m ffb.cli login     # one-time OAuth (opens browser, paste code)
-    python -m ffb.cli teams     # list my teams + leagues
-    python -m ffb.cli logout    # forget stored tokens
+    python -m ffb.cli login          # one-time OAuth (interactive)
+    python -m ffb.cli auth-url       # print the authorize URL only
+    python -m ffb.cli exchange CODE  # non-interactive half of login
+    python -m ffb.cli teams          # list my teams + leagues
+    python -m ffb.cli logout         # forget stored tokens
+
+`auth-url` + `exchange` split `login` into two non-interactive steps, for
+environments where a blocking input() prompt is awkward.
 """
 import sys
 import webbrowser
@@ -39,6 +44,21 @@ def cmd_login() -> int:
     yahoo_auth.exchange_code(code)
     print("\nLogged in. Tokens stored in: {}".format(tokens.describe_store()))
     print("Access tokens last 1 hour and refresh automatically from here on.")
+    return 0
+
+
+def cmd_auth_url() -> int:
+    config.require_credentials()
+    print(yahoo_auth.authorize_url())
+    return 0
+
+
+def cmd_exchange() -> int:
+    if len(sys.argv) < 3:
+        print("Usage: python -m ffb.cli exchange <code>", file=sys.stderr)
+        return 2
+    yahoo_auth.exchange_code(sys.argv[2])
+    print("Logged in. Tokens stored in: {}".format(tokens.describe_store()))
     return 0
 
 
@@ -82,7 +102,13 @@ def cmd_logout() -> int:
     return 0
 
 
-COMMANDS = {"login": cmd_login, "teams": cmd_teams, "logout": cmd_logout}
+COMMANDS = {
+    "login": cmd_login,
+    "auth-url": cmd_auth_url,
+    "exchange": cmd_exchange,
+    "teams": cmd_teams,
+    "logout": cmd_logout,
+}
 
 
 def main() -> int:

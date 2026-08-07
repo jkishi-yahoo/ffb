@@ -30,8 +30,13 @@ def _throttle() -> None:
     _last_call[0] = time.monotonic()
 
 
-def get(path: str, **params: Any) -> dict:
-    """GET a Fantasy API path (relative to /fantasy/v2) and return parsed JSON."""
+def get(path: str, _retry: bool = True, **params: Any) -> dict:
+    """GET a Fantasy API path (relative to /fantasy/v2) and return parsed JSON.
+
+    A 401 gets exactly one forced-refresh retry. It must not retry unbounded:
+    a *persistent* 401 means the grant itself is bad (scope not authorised,
+    access revoked), which no amount of refreshing will fix.
+    """
     _throttle()
     params.setdefault("format", "json")
     token = yahoo_auth.valid_access_token()
@@ -42,12 +47,22 @@ def get(path: str, **params: Any) -> dict:
         params=params,
         timeout=30,
     )
-    if resp.status_code == 401:
-        # Token died early (revoked, or password change). One forced retry.
+    if resp.status_code == 401 and _retry:
         stored = tokens.load()
         if stored and stored.get("refresh_token"):
             yahoo_auth.refresh(stored["refresh_token"])
-            return get(path, **params)
+            return get(path, _retry=False, **params)
+    if resp.status_code in (401, 403):
+        raise YahooError(
+            "Yahoo API {} on {}\n{}\n\n"
+            "A persistent {} after a token refresh means the token is valid but "
+            "is not authorised for Fantasy Sports data. The current Yahoo app "
+            "form has no Fantasy Sports permission option, so this most likely "
+            "means API access must be requested at "
+            "https://sports.yahoo.com/developer/access/".format(
+                resp.status_code, url, resp.text[:600], resp.status_code
+            )
+        )
     if resp.status_code != 200:
         raise YahooError(
             "Yahoo API {} on {}\n{}".format(resp.status_code, url, resp.text[:600])
