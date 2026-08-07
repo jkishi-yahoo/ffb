@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import board as board_mod
-from . import config, draft, league_state, leagues, trades, waivers, yahoo_auth
+from . import config, draft, league_state, leagues, ratelimit, trades, waivers, yahoo_auth
 
 TEMPLATES = Jinja2Templates(directory=str(config.ROOT / "ffb" / "templates"))
 
@@ -93,29 +93,19 @@ def login_form(request: Request, bad: int = 0):
         "login.html", {"request": request, "bad": bad})
 
 
-_login_attempts: Dict[str, list] = {}
-MAX_ATTEMPTS = 8
-ATTEMPT_WINDOW = 300
-
-
-def _rate_limited(ip: str) -> bool:
-    now = time.time()
-    hits = [t for t in _login_attempts.get(ip, []) if t > now - ATTEMPT_WINDOW]
-    _login_attempts[ip] = hits
-    return len(hits) >= MAX_ATTEMPTS
-
-
 @app.post("/login")
 def login_submit(request: Request, pin: str = Form(...)):
-    # Public URL means an unthrottled PIN form is a brute-force target.
+    # A short PIN on a public URL needs a throttle that survives restarts and
+    # is not defeated by rotating IPs — see ffb/ratelimit.py.
     ip = request.client.host if request.client else "?"
-    if _rate_limited(ip):
+    allowed, _reason = ratelimit.check(ip)
+    if not allowed:
         return RedirectResponse("/login?bad=2", status_code=303)
     # compare_digest so a wrong PIN cannot be found by timing the response.
     if not PIN or not secrets.compare_digest(pin.strip(), PIN):
-        _login_attempts.setdefault(ip, []).append(time.time())
+        ratelimit.record_failure(ip)
         return RedirectResponse("/login?bad=1", status_code=303)
-    _login_attempts.pop(ip, None)
+    ratelimit.clear(ip)
     tok = secrets.token_urlsafe(32)
     _sessions[tok] = time.time() + SESSION_TTL
     resp = RedirectResponse("/", status_code=303)
