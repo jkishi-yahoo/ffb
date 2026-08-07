@@ -61,6 +61,21 @@ def team_stats(season: int) -> pd.DataFrame:
     )
 
 
+def rosters(season: int) -> pd.DataFrame:
+    """Actual NFL rosters for `season`.
+
+    This is the authority on who is really on a team. Sleeper's `active` flag
+    is not usable for this — it marks long-retired players as Active. Also
+    carries gsis_id / sleeper_id / yahoo_id, so downstream joins use real IDs
+    instead of fuzzy name matching.
+    """
+    return fetch_csv(
+        "{}/rosters/roster_{}.csv".format(NFLVERSE, season),
+        "roster_{}.csv".format(season),
+        ttl=12 * 3600,  # cuts and signings move daily in preseason
+    )
+
+
 def schedule() -> pd.DataFrame:
     return fetch_csv("{}/schedules/games.csv".format(NFLVERSE), "games.csv")
 

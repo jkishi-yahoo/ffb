@@ -38,6 +38,47 @@ def player_season_points(season: int, league: League) -> pd.DataFrame:
     return df[keep].sort_values("points", ascending=False).reset_index(drop=True)
 
 
+# Most recent season weighted heaviest, but earlier seasons still count. This
+# is what rescues a player who missed the latest season entirely: without it,
+# an established starter coming back from injury reads as worthless.
+RECENCY_WEIGHTS = (0.60, 0.30, 0.10)
+MIN_GAMES_FOR_BASELINE = 4
+
+
+def player_multi_season_points(seasons, league: League,
+                               min_games: int = MIN_GAMES_FOR_BASELINE
+                               ) -> pd.DataFrame:
+    """Recency-weighted ppg across several seasons, keyed by player_id.
+
+    Weights are renormalised over only the seasons a player was actually
+    available, so missing a year lowers confidence rather than the average.
+    """
+    frames = []
+    for weight, season in zip(RECENCY_WEIGHTS, seasons):
+        df = player_season_points(season, league)
+        df = df[df.games_played >= min_games].copy()
+        df["weight"] = weight
+        df["season"] = season
+        frames.append(df)
+    if not frames:
+        return pd.DataFrame()
+    allrows = pd.concat(frames, ignore_index=True)
+
+    def agg(grp):
+        w = grp.weight.sum()
+        return pd.Series({
+            "player_display_name": grp.iloc[0].player_display_name,
+            "position": grp.iloc[0].position,
+            "ppg": (grp.ppg * grp.weight).sum() / w if w else 0.0,
+            "games_played": grp.games_played.sum(),
+            "seasons_used": len(grp),
+            "latest_season": int(grp.season.max()),
+        })
+
+    out = allrows.groupby("player_id").apply(agg).reset_index()
+    return out.sort_values("ppg", ascending=False).reset_index(drop=True)
+
+
 def _points_allowed_by_team(season: int) -> pd.DataFrame:
     """Per-game points allowed for every team, from the schedule's scores.
 

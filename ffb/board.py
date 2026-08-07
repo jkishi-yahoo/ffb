@@ -90,62 +90,131 @@ def sleeper_frame() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def build(league: League, season: int = SEASON_BASELINE,
-          min_games: int = 4) -> pd.DataFrame:
-    """The full board for `league`, sorted by value over replacement."""
-    base = projections.baseline(season, league)
-    base = base[base.games_played >= min_games].copy()
-    base["_key"] = base.player_display_name.map(norm_name)
+def _apply_rookie_projections(df: pd.DataFrame, league: League) -> pd.DataFrame:
+    """Fill in value for players with no stat history, using draft capital.
 
-    cur = sleeper_frame()
-    # DST rows come from team stats and have no Sleeper counterpart by name;
-    # match them on team code instead.
-    # Both sides go through nflverse_team so LAR/LA and friends line up.
-    dst_mask = base.position == "DEF"
-    base.loc[dst_mask, "_key"] = base.loc[dst_mask, "recent_team"].map(
-        lambda t: norm_name(str(nflverse_team(t) or t)))
-    cur.loc[cur.position == "DEF", "_key"] = cur.loc[
-        cur.position == "DEF", "team"].map(
-            lambda t: norm_name(str(nflverse_team(t) or t)))
+    Only applied where there is no baseline: a rookie who somehow already has
+    2025 production keeps the real number. Ranking uses the risk-adjusted
+    figure so a boom/bust late-rounder does not outrank a safe starter on
+    upside alone; the unadjusted projection is kept for display.
+    """
+    from . import rookies as rookies_mod
 
-    merged = cur.merge(
-        base[["_key", "position", "games_played", "points", "ppg"]],
-        on=["_key", "position"], how="outer", suffixes=("", "_base"))
+    try:
+        # Three classes: this year's rookies, plus recent picks who never
+        # produced and would otherwise sit on the board at zero.
+        proj = rookies_mod.project(CURRENT_SEASON, league, classes=3)
+    except Exception:
+        # A rookie-curve failure must not take the whole board down.
+        return df
+    if proj.empty:
+        return df
 
-    # Prefer Sleeper's current team; fall back to the stat source.
-    merged["name"] = merged["name"].fillna("")
-    merged["has_baseline"] = merged["ppg"].notna()
-    merged["ppg"] = merged["ppg"].fillna(0.0)
-    merged["points"] = merged["points"].fillna(0.0)
-    merged = merged[merged.position.isin(FANTASY_POSITIONS)]
-    merged = merged[merged.name != ""]
+    proj = proj.copy()
+    proj["_key"] = proj.player_display_name.map(norm_name)
+    proj = proj.drop_duplicates("_key")
+    lookup = proj.set_index("_key")
 
-    merged["player_display_name"] = merged["name"]
-    scored = valuation.add_vor(merged, league)
+    out = df.copy()
+    keys = out.player_display_name.map(norm_name)
+    fill = ~out.has_baseline & keys.isin(lookup.index)
+
+    out.loc[fill, "ppg"] = keys[fill].map(lookup.risk_adj_ppg).values
+    out.loc[fill, "proj_ppg_upside"] = keys[fill].map(lookup.proj_ppg).values
+    out.loc[fill, "hit_rate"] = keys[fill].map(lookup.hit_rate).values
+    out.loc[fill, "draft_pick"] = keys[fill].map(lookup["pick"]).values
+    out.loc[fill, "value_source"] = "draft capital"
+    return out
+
+
+BASELINE_SEASONS = (2025, 2024, 2023)
+
+
+def build(league: League) -> pd.DataFrame:
+    """The full board for `league`, sorted by value over replacement.
+
+    The spine is the actual 2026 NFL roster, not a bulk player dump: Sleeper
+    marks long-retired players as Active, which put Roethlisberger and Le'Veon
+    Bell on the board. Joins run on gsis_id / sleeper_id rather than names, so
+    accents and generational suffixes cannot silently drop anyone.
+    """
+    roster = data.rosters(CURRENT_SEASON)
+    roster = roster[roster.position.isin(("QB", "RB", "WR", "TE", "K"))]
+    if "status" in roster.columns:
+        # ACT plus RES (reserve/injured): a player on IR in August is still a
+        # legitimate late-round stash. RET/CUT/E14 are genuinely off the board.
+        roster = roster[roster.status.isin(("ACT", "RES"))]
+    roster = roster.dropna(subset=["gsis_id"]).drop_duplicates("gsis_id")
+
+    spine = pd.DataFrame({
+        "gsis_id": roster.gsis_id.values,
+        "sleeper_id": roster.get("sleeper_id").values,
+        "yahoo_id": roster.get("yahoo_id").values,
+        "player_display_name": roster.full_name.values,
+        "position": roster.position.values,
+        "team": roster.team.values,
+    })
+
+    # --- recency-weighted production baseline, joined by gsis_id ----------
+    base = projections.player_multi_season_points(BASELINE_SEASONS, league)
+    spine = spine.merge(
+        base[["player_id", "ppg", "games_played", "seasons_used",
+              "latest_season"]],
+        left_on="gsis_id", right_on="player_id", how="left")
+    spine["has_baseline"] = spine.ppg.notna()
+    spine["value_source"] = spine.has_baseline.map(
+        {True: "production", False: "none"})
+
+    # --- Sleeper adds injury status and search interest -------------------
+    sl = sleeper_frame()
+    spine["sleeper_id"] = spine.sleeper_id.astype(str)
+    sl["sleeper_id"] = sl.sleeper_id.astype(str)
+    spine = spine.merge(
+        sl[["sleeper_id", "injury_status", "search_rank", "years_exp"]],
+        on="sleeper_id", how="left")
+
+    # --- rookies get value from draft capital -----------------------------
+    spine["ppg"] = spine.ppg.fillna(0.0)
+    spine = _apply_rookie_projections(spine, league)
+
+    # --- team defenses ----------------------------------------------------
+    dst = projections.dst_season_points(SEASON_BASELINE, league)
+    team_col = "team" if "team" in dst.columns else dst.columns[2]
+    dst_rows = pd.DataFrame({
+        "player_display_name": dst.player_display_name.values,
+        "position": "DEF",
+        "team": dst[team_col].values,
+        "ppg": dst.ppg.values,
+        "has_baseline": True,
+        "value_source": "production",
+    })
+    board = pd.concat([spine, dst_rows], ignore_index=True, sort=False)
+
+    scored = valuation.add_vor(board, league)
     scored = valuation.add_tiers(scored)
 
     byes = data.bye_weeks(CURRENT_SEASON)
-    scored["bye"] = scored["team"].map(
-        lambda t: byes.get(nflverse_team(t)))
+    scored["bye"] = scored["team"].map(lambda t: byes.get(nflverse_team(t)))
+    scored["rookie"] = scored["years_exp"].fillna(-1).astype(float) == 0
 
-    scored["rookie"] = scored["years_exp"].fillna(-1).astype(int) == 0
     cols = ["player_display_name", "position", "team", "bye", "ppg", "vor",
-            "tier", "has_baseline", "rookie", "injury_status", "search_rank",
-            "games_played"]
+            "tier", "value_source", "proj_ppg_upside", "hit_rate",
+            "draft_pick", "seasons_used", "latest_season", "has_baseline",
+            "rookie", "injury_status", "search_rank", "games_played",
+            "gsis_id", "yahoo_id"]
     keep = [c for c in cols if c in scored.columns]
     return scored[keep].reset_index(drop=True)
 
 
 def coverage_report(board: pd.DataFrame) -> Dict[str, object]:
-    """What the board does and does not know — shown alongside it so gaps are
-    visible rather than implied."""
-    total = len(board)
-    no_base = board[~board.has_baseline]
+    """What the board does and does not know — reported alongside it so gaps
+    are visible rather than implied."""
+    counts = (board.value_source.value_counts().to_dict()
+              if "value_source" in board else {})
     return {
-        "players": total,
-        "with_2025_baseline": int(board.has_baseline.sum()),
-        "without_baseline": int((~board.has_baseline).sum()),
-        "rookies_without_baseline": int(
-            (no_base.rookie if "rookie" in no_base else pd.Series(dtype=bool)).sum()),
+        "players": len(board),
+        "from_production": int(counts.get("production", 0)),
+        "from_draft_capital": int(counts.get("draft capital", 0)),
+        "unvalued": int(counts.get("none", 0)),
         "byes_resolved": int(board.bye.notna().sum()) if "bye" in board else 0,
     }

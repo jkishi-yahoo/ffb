@@ -127,13 +127,13 @@ def cmd_board() -> int:
     print(b.head(top_n)[cols].to_string(index=False))
 
     cov = board_mod.coverage_report(b)
-    print("\nCoverage: {} players, {} with a {} baseline, {} without "
-          "({} of those rookies).".format(
-              cov["players"], cov["with_2025_baseline"],
-              board_mod.SEASON_BASELINE, cov["without_baseline"],
-              cov["rookies_without_baseline"]))
-    print("Players without a baseline are shown but not yet valued — "
-          "rookie projections are not wired up.")
+    print("\nCoverage: {} players — {} valued from production (recency-"
+          "weighted {}), {} from draft capital, {} unvalued.".format(
+              cov["players"], cov["from_production"],
+              "/".join(str(s) for s in board_mod.BASELINE_SEASONS),
+              cov["from_draft_capital"], cov["unvalued"]))
+    print("Unvalued players are deep-roster names with no NFL production and "
+          "no draft capital; they sort to the bottom.")
     if leagues_mod.UNVERIFIED_RULES:
         print("\nUnverified scoring rules (confirm via Yahoo API when access "
               "lands):")
