@@ -39,17 +39,42 @@ Go to <https://developer.yahoo.com/apps/create/> and set:
 
 | Field | Value |
 |---|---|
-| Application Name | anything, e.g. `FFB Local` |
-| Application Type | **Installed Application** |
-| Redirect URI | `oob` |
-| API Permissions | **Fantasy Sports** → **Read** |
+| Application Name | e.g. `FFB Draft Assistant` (Yahoo rejects names containing "Yahoo") |
+| Description | optional, e.g. `Personal fantasy football tool for my own leagues` |
+| Homepage URL | leave blank |
+| Redirect URI(s) | `oob` — see fallback below |
+| OAuth Client Type | **Confidential Client** |
+| API Permissions | **check neither box** |
 
-`oob` ("out of band") means Yahoo shows you a code to paste instead of
-redirecting to a URL. This avoids Yahoo's HTTPS-callback requirement, which
-otherwise makes local development painful.
+**Confidential Client** is the option that issues a Client Secret, which this
+code uses (Basic-auth header per Yahoo's docs). Public Client can't hold a
+secret and would break the flow.
 
-Use **Read** for now. Only upgrade to Read/Write if you later want the app to
-submit add/drop or trade transactions for you.
+`oob` ("out of band") means Yahoo shows you a code to paste rather than
+redirecting. This sidesteps Yahoo's HTTPS-callback requirement. If the form
+rejects `oob` as invalid, use `https://localhost:8000/callback` instead and set
+`YAHOO_REDIRECT_URI` in `.env` to match exactly. The browser will show a
+connection error after you approve — that's expected; copy the `?code=` value
+out of the address bar. `ffb.cli login` handles both paths.
+
+### A note on the Fantasy Sports permission
+
+Yahoo's current app-creation form has **no Fantasy Sports permission option**.
+Older community guides (and Yahoo's own older form) describe an
+`Installed Application` type with a `Fantasy Sports` → `Read` checkbox; that
+form no longer exists. The two boxes now shown — OpenID Connect and TW Auction
+— are both irrelevant here.
+
+Yahoo now runs a gated access application at
+<https://sports.yahoo.com/developer/access/>, which asks for expected user
+counts and a Client ID and says their team reviews each submission. Whether
+Fantasy API access actually requires that approval, or still works implicitly
+for any app, is **unverified**.
+
+Test empirically before applying: create the app, then run `ffb.cli teams`.
+If teams print, no application is needed. If it 401s/403s, submit the access
+form — and note there is no published approval timeline, so apply early
+relative to any draft date.
 
 ### 2. Configure
 
