@@ -35,6 +35,19 @@ def save(tokens: dict) -> None:
 
 
 def load() -> Optional[dict]:
+    stored = _load_stored()
+    if stored:
+        return stored
+    # Nothing persisted. On a diskless host this is every restart, so fall
+    # back to the seeded refresh token. Marked already-expired so the first
+    # call refreshes it into a real access token.
+    if config.BOOTSTRAP_REFRESH_TOKEN:
+        return {"access_token": "", "expires_at": 0,
+                "refresh_token": config.BOOTSTRAP_REFRESH_TOKEN}
+    return None
+
+
+def _load_stored() -> Optional[dict]:
     if _use_keychain():
         import keyring
 

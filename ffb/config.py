@@ -17,6 +17,12 @@ CLIENT_SECRET = os.getenv("YAHOO_CLIENT_SECRET", "").strip()
 REDIRECT_URI = os.getenv("YAHOO_REDIRECT_URI", "oob").strip() or "oob"
 TOKEN_STORE = os.getenv("FFB_TOKEN_STORE", "keychain").strip().lower()
 
+# Bootstrap refresh token. Hosts without a persistent disk (Render's free
+# plan) wipe the token file on every restart, which would mean re-authorising
+# after each sleep. Yahoo refresh tokens are long-lived, so seeding one via
+# env var lets a diskless instance recover its session on boot.
+BOOTSTRAP_REFRESH_TOKEN = os.getenv("FFB_REFRESH_TOKEN", "").strip()
+
 # Yahoo OAuth2 endpoints — https://developer.yahoo.com/oauth2/guide/flows_authcode/
 AUTH_URL = "https://api.login.yahoo.com/oauth2/request_auth"
 TOKEN_URL = "https://api.login.yahoo.com/oauth2/get_token"

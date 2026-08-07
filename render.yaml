@@ -11,22 +11,27 @@ services:
   - type: web
     name: ffb
     runtime: python
-    plan: starter          # `free` works, but see the note above
+    plan: free             # see NOTE ON PLAN above before draft week
     region: oregon
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn ffb.web:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
-    disk:
-      name: ffb-data
-      mountPath: /var/data
-      sizeGB: 1
+    # No `disk:` block — Render's free plan does not support persistent
+    # disks. To upgrade for draft week, change plan to `starter` and add:
+    #   disk:
+    #     name: ffb-data
+    #     mountPath: /var/data
+    #     sizeGB: 1
+    # then set FFB_DATA_DIR to /var/data.
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
       # Writable state lives on the mounted disk; the rest of the container
       # filesystem is replaced on every deploy.
+      # Ephemeral on the free plan (no disk). Cache rebuilds after each
+      # sleep; ~10s on the first request. Point at /var/data once a disk exists.
       - key: FFB_DATA_DIR
-        value: /var/data
+        value: /tmp/ffb-data
       # There is no macOS Keychain on Linux, so tokens go to a 0600 file on
       # the persistent disk.
       - key: FFB_TOKEN_STORE
@@ -42,4 +47,10 @@ services:
         sync: false
       # This URL is public. Use a long random string, not a 4-digit PIN.
       - key: FFB_PIN
+        sync: false
+      # Without a disk the token file is wiped on every restart. Seed the
+      # long-lived refresh token here so the instance recovers its Yahoo
+      # session on boot instead of asking you to re-authorise after each
+      # sleep. Get its value from /health after authorising once.
+      - key: FFB_REFRESH_TOKEN
         sync: false
