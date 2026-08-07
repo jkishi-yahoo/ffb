@@ -9,8 +9,15 @@
       <li>This page fills in automatically once approved — nothing to rebuild</li>
     </ol>
   {% elif conn.reason == 'not_logged_in' %}
-    <p>Not logged in to Yahoo.</p>
-    <ol class="step"><li>Run <code>python -m ffb.cli login</code></li></ol>
+    <p>Not connected to Yahoo yet.</p>
+    <p style="margin-top:14px">
+      <a href="/auth/start" style="display:inline-block;padding:10px 20px;
+         border-radius:8px;background:var(--accent);color:#fff;
+         text-decoration:none;font-weight:600">Connect Yahoo</a>
+    </p>
+    <p class="note" style="margin-top:10px">
+      Opens Yahoo's approval screen. Nothing to run in a terminal.
+    </p>
   {% elif conn.reason == 'no_credentials' %}
     <p>No Yahoo credentials configured.</p>
     <ol class="step"><li>Add <code>YAHOO_CLIENT_ID</code> and <code>YAHOO_CLIENT_SECRET</code> to <code>.env</code></li></ol>
