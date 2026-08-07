@@ -51,6 +51,8 @@ services:
       # Without a disk the token file is wiped on every restart. Seed the
       # long-lived refresh token here so the instance recovers its Yahoo
       # session on boot instead of asking you to re-authorise after each
-      # sleep. Get its value from /health after authorising once.
+      # sleep. Get its value locally with:
+      #   python -m ffb.cli show-refresh-token
+      # (never exposed over HTTP — it is a credential)
       - key: FFB_REFRESH_TOKEN
         sync: false

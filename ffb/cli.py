@@ -5,6 +5,7 @@
     python -m ffb.cli exchange CODE  # non-interactive half of login
     python -m ffb.cli teams          # list my teams + leagues
     python -m ffb.cli board [league] [pos] [n]   # draft board, my scoring
+    python -m ffb.cli show-refresh-token  # for seeding a hosted deploy
     python -m ffb.cli logout         # forget stored tokens
 
 `auth-url` + `exchange` split `login` into two non-interactive steps, for
@@ -144,6 +145,19 @@ def cmd_board() -> int:
     return 0
 
 
+def cmd_show_refresh_token() -> int:
+    """Print the stored refresh token, for seeding FFB_REFRESH_TOKEN on a
+    diskless host. Deliberately CLI-only: this is a credential and must never
+    be reachable over HTTP."""
+    stored = tokens.load()
+    if not stored or not stored.get("refresh_token"):
+        print("No refresh token stored. Run: python -m ffb.cli login",
+              file=sys.stderr)
+        return 1
+    print(stored["refresh_token"])
+    return 0
+
+
 def cmd_logout() -> int:
     tokens.clear()
     print("Tokens cleared from {}.".format(tokens.describe_store()))
@@ -156,6 +170,7 @@ COMMANDS = {
     "auth-url": cmd_auth_url,
     "exchange": cmd_exchange,
     "teams": cmd_teams,
+    "show-refresh-token": cmd_show_refresh_token,
     "logout": cmd_logout,
 }
 
