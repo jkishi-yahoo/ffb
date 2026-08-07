@@ -1,11 +1,16 @@
-httpx>=0.27
-fastapi>=0.110
-uvicorn[standard]>=0.29
-jinja2>=3.1
-python-dotenv>=1.0
-python-multipart>=0.0.9
-pandas>=2.0
+# Pinned exactly. Unpinned ranges meant local ran starlette 0.49 while Render
+# installed 1.4, which removed the TemplateResponse(name, context) signature —
+# so every template 500'd in production while working locally. Pin, and test
+# against what actually ships.
+httpx==0.28.1
+fastapi==0.128.8
+starlette==0.49.3
+uvicorn[standard]==0.39.0
+jinja2==3.1.6
+python-dotenv==1.2.1
+python-multipart==0.0.20
+pandas==2.3.3
 
-# Keychain storage is macOS-only. On Linux hosts FFB_TOKEN_STORE=file is used
-# and keyring is never imported, so it is not installed there.
-keyring>=25.0; sys_platform == "darwin"
+# Keychain storage is macOS-only. Linux hosts use FFB_TOKEN_STORE=file and
+# never import it, so it is not installed there.
+keyring==25.7.0; sys_platform == "darwin"

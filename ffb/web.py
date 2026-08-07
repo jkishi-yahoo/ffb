@@ -89,8 +89,7 @@ def _prewarm() -> None:
 
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request, bad: int = 0):
-    return TEMPLATES.TemplateResponse(
-        "login.html", {"request": request, "bad": bad})
+    return TEMPLATES.TemplateResponse(request, "login.html", {"bad": bad})
 
 
 @app.post("/login")
@@ -157,7 +156,7 @@ def index(request: Request, league: str = "582600", pos: str = "",
         "page": "board",
     }
     template = "_rows.html" if request.headers.get("HX-Request") else "board.html"
-    return TEMPLATES.TemplateResponse(template, ctx)
+    return TEMPLATES.TemplateResponse(request, template, ctx)
 
 
 def _draft_context(request: Request, league_id: str) -> dict:
@@ -202,7 +201,7 @@ def draft_view(request: Request, league: str = "582600"):
     ctx = _draft_context(request, league)
     template = "_draft_body.html" if request.headers.get("HX-Request") \
         else "draft.html"
-    return TEMPLATES.TemplateResponse(template, ctx)
+    return TEMPLATES.TemplateResponse(request, template, ctx)
 
 
 @app.post("/draft/start")
@@ -227,7 +226,7 @@ def draft_pick(request: Request, league: str = Form(...),
                       == player.strip().lower()]
         pos = match.iloc[0].position if len(match) else None
         draft.add_pick(d["id"], player.strip(), pos, lg.num_teams)
-    return TEMPLATES.TemplateResponse("_draft_body.html",
+    return TEMPLATES.TemplateResponse(request, "_draft_body.html",
                                       _draft_context(request, league))
 
 
@@ -238,7 +237,7 @@ def draft_undo(request: Request, league: str = Form(...)):
     d = draft.active_draft(league)
     if d:
         draft.undo_pick(d["id"])
-    return TEMPLATES.TemplateResponse("_draft_body.html",
+    return TEMPLATES.TemplateResponse(request, "_draft_body.html",
                                       _draft_context(request, league))
 
 
@@ -300,7 +299,7 @@ def waivers_view(request: Request, league: str = "582600", week: int = 1):
         except Exception as exc:  # surface, never fake results
             conn = {"connected": False, "reason": "api_error",
                     "detail": str(exc)[:300]}
-    return TEMPLATES.TemplateResponse("waivers.html", {
+    return TEMPLATES.TemplateResponse(request, "waivers.html", {
         "request": request, "page": "waivers", "league": lg,
         "leagues": leagues.LEAGUES, "league_id": league,
         "conn": conn, "recs": recs, "week": week})
@@ -326,7 +325,7 @@ def trades_view(request: Request, league: str = "582600"):
         except Exception as exc:
             conn = {"connected": False, "reason": "api_error",
                     "detail": str(exc)[:300]}
-    return TEMPLATES.TemplateResponse("trades.html", {
+    return TEMPLATES.TemplateResponse(request, "trades.html", {
         "request": request, "page": "trades", "league": lg,
         "leagues": leagues.LEAGUES, "league_id": league,
         "conn": conn, "proposals": proposals})
