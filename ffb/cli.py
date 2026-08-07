@@ -4,6 +4,7 @@
     python -m ffb.cli auth-url       # print the authorize URL only
     python -m ffb.cli exchange CODE  # non-interactive half of login
     python -m ffb.cli teams          # list my teams + leagues
+    python -m ffb.cli board [league] [pos] [n]   # draft board, my scoring
     python -m ffb.cli logout         # forget stored tokens
 
 `auth-url` + `exchange` split `login` into two non-interactive steps, for
@@ -96,6 +97,53 @@ def cmd_teams() -> int:
     return 0
 
 
+def cmd_board() -> int:
+    """Draft board under a league's real scoring. Usage:
+        board [league_id] [position] [top_n]
+    """
+    import pandas as pd
+
+    from . import board as board_mod
+    from . import leagues as leagues_mod
+
+    league_id = sys.argv[2] if len(sys.argv) > 2 else "582600"
+    pos = sys.argv[3].upper() if len(sys.argv) > 3 else None
+    top_n = int(sys.argv[4]) if len(sys.argv) > 4 else 25
+
+    lg = leagues_mod.get(league_id)
+    pd.set_option("display.width", 220)
+    b = board_mod.build(lg)
+    if pos:
+        b = b[b.position == pos]
+
+    print("\n{} — {} teams, {}".format(lg.name, lg.num_teams, lg.draft_type))
+    print("Scoring: full PPR, 4pt pass TD, INT -2 | DST sack 2, TFL 0.5")
+    print("Baseline: {} actuals scored under this league; "
+          "current rosters from Sleeper\n".format(board_mod.SEASON_BASELINE))
+
+    cols = [c for c in ["player_display_name", "position", "team", "bye",
+                        "ppg", "vor", "tier", "has_baseline", "rookie",
+                        "injury_status"] if c in b.columns]
+    print(b.head(top_n)[cols].to_string(index=False))
+
+    cov = board_mod.coverage_report(b)
+    print("\nCoverage: {} players, {} with a {} baseline, {} without "
+          "({} of those rookies).".format(
+              cov["players"], cov["with_2025_baseline"],
+              board_mod.SEASON_BASELINE, cov["without_baseline"],
+              cov["rookies_without_baseline"]))
+    print("Players without a baseline are shown but not yet valued — "
+          "rookie projections are not wired up.")
+    if leagues_mod.UNVERIFIED_RULES:
+        print("\nUnverified scoring rules (confirm via Yahoo API when access "
+              "lands):")
+        for rule in leagues_mod.UNVERIFIED_RULES:
+            print("  - {}".format(rule))
+    for label, why in leagues_mod.KNOWN_GAPS:
+        print("  - not scored: {} — {}".format(label, why))
+    return 0
+
+
 def cmd_logout() -> int:
     tokens.clear()
     print("Tokens cleared from {}.".format(tokens.describe_store()))
@@ -104,6 +152,7 @@ def cmd_logout() -> int:
 
 COMMANDS = {
     "login": cmd_login,
+    "board": cmd_board,
     "auth-url": cmd_auth_url,
     "exchange": cmd_exchange,
     "teams": cmd_teams,
