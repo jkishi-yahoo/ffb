@@ -13,8 +13,11 @@
       <span class="grow"></span>
       <span class="note">{{ league.waiver_type }}</span>
     </div>
+    <div id="detail"></div>
     {% for r in recs %}
-      <div class="card rec">
+      <div class="card rec clickable"
+           hx-get="/player?name={{ r.name | urlencode }}&league={{ league_id }}"
+           hx-target="#detail" hx-swap="innerHTML">
         <div class="row">
           <strong>{{ r.name }}</strong>
           <span class="pos {{ r.position }}">{{ r.position }}</span>

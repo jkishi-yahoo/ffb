@@ -8,7 +8,9 @@
   </thead>
   <tbody>
   {% for r in rows %}
-    <tr>
+    <tr class="clickable"
+        hx-get="/player?name={{ r.player_display_name | urlencode }}&league={{ league_id }}"
+        hx-target="#detail" hx-swap="innerHTML">
       <td class="num note">{{ loop.index }}</td>
       <td>{{ r.player_display_name }}</td>
       <td class="pos {{ r.position }}">{{ r.position }}</td>

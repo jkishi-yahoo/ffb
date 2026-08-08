@@ -1,0 +1,66 @@
+{% if not p %}
+  <div class="card"><span class="note">Player not found on the board.</span></div>
+{% else %}
+<div class="card" style="border-color:var(--accent)">
+  <div class="row">
+    <strong style="font-size:16px">{{ p.name }}</strong>
+    <span class="pos {{ p.position }}">{{ p.position }}</span>
+    <span class="note">{{ p.team or "—" }}{% if p.bye %} · bye {{ p.bye | int }}{% endif %}</span>
+    <span class="grow"></span>
+    <a href="#" onclick="document.getElementById('detail').innerHTML='';return false"
+       class="note" style="text-decoration:none">✕</a>
+  </div>
+
+  <div class="row" style="margin-top:10px;gap:18px">
+    <div><div class="note">Points/game</div><div class="metric">{{ p.ppg }}</div></div>
+    <div><div class="note">Over replacement</div>
+         <div class="metric {{ 'up' if p.vor > 0 else 'down' }}">{{ "%+.1f" | format(p.vor) }}</div></div>
+    <div><div class="note">Position rank</div>
+         <div class="metric">{% if p.position_rank %}{{ p.position }}{{ p.position_rank }}{% else %}—{% endif %}</div></div>
+    <div><div class="note">Tier</div>
+         <div class="metric">{{ p.tier }}<span class="note" style="font-weight:400"> ({{ p.tier_peers }} in tier)</span></div></div>
+  </div>
+
+  <div style="margin-top:14px">
+    <div class="row">
+      <strong style="font-size:13px">Pickup score</strong>
+      <span class="grow"></span>
+      <span class="metric">{{ p.pickup.display }}/100</span>
+    </div>
+    <div class="bar"><span style="width:{{ p.pickup.display }}%"></span></div>
+    <div class="why"><strong>{{ p.pickup.verdict }}</strong></div>
+    <div class="why">{{ p.pickup.reasons | join(" · ") }}</div>
+    {% if not p.pickup.roster_aware %}
+      <div class="why warn">Not roster-aware yet — connect Yahoo for a score
+      measured against your actual starters.</div>
+    {% endif %}
+  </div>
+
+  <div style="margin-top:14px">
+    <div class="row">
+      <strong style="font-size:13px">Health</strong>
+      <span class="grow"></span>
+      <span class="pill">{{ p.health.label }}</span>
+    </div>
+    <div class="why">{{ p.health.note }}</div>
+  </div>
+
+  <div style="margin-top:14px">
+    <div class="row">
+      <strong style="font-size:13px">Availability</strong>
+      <span class="grow"></span>
+      <span class="pill">{{ p.availability.state }}</span>
+    </div>
+    <div class="why">{{ p.availability.note }}</div>
+    {% if p.availability.contest %}<div class="why">{{ p.availability.contest }}</div>{% endif %}
+  </div>
+
+  <div class="why" style="margin-top:12px;opacity:.7">
+    Value from
+    {% if p.value_source == 'production' %}
+      {{ p.seasons_used | int if p.seasons_used == p.seasons_used else "?" }} season(s) of production
+    {% elif p.value_source == 'draft capital' %}draft capital
+    {% else %}no baseline{% endif %}, scored under this league's rules.
+  </div>
+</div>
+{% endif %}

@@ -112,6 +112,21 @@ def main():
     check("tiers assigned (>=1 per position)",
           bool((tiered.tier >= 1).all()), True)
 
+    # --- pickup score must discriminate, not saturate --------------------
+    from ffb import players
+    # A linear clipped map put the top players at 100 and every
+    # below-replacement player at 0 — useless on a waiver wire, where almost
+    # everything is below replacement.
+    for aware in (True, False):
+        vals = [players._to_display(x, aware)
+                for x in (-10, -5, -2, 0, 2, 5, 10)]
+        check("pickup score strictly increasing (roster_aware={})".format(aware),
+              all(a < b for a, b in zip(vals, vals[1:])), True)
+        check("pickup score avoids 0/100 pileup (roster_aware={})".format(aware),
+              len(set(vals)) == len(vals), True)
+        check("pickup score stays in range (roster_aware={})".format(aware),
+              all(0 <= v <= 100 for v in vals), True)
+
     print("\n{} / {} passed".format(sum(RESULTS), len(RESULTS)))
     return 0 if all(RESULTS) else 1
 

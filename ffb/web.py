@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import board as board_mod
-from . import config, draft, league_state, leagues, ratelimit, trades, waivers, yahoo_auth
+from . import config, draft, league_state, leagues, players, ratelimit, trades, waivers, yahoo_auth
 
 TEMPLATES = Jinja2Templates(directory=str(config.ROOT / "ffb" / "templates"))
 
@@ -329,6 +329,25 @@ def trades_view(request: Request, league: str = "582600"):
         "request": request, "page": "trades", "league": lg,
         "leagues": leagues.LEAGUES, "league_id": league,
         "conn": conn, "proposals": proposals})
+
+
+@app.get("/player", response_class=HTMLResponse)
+def player_detail(request: Request, name: str = "", league: str = "582600"):
+    """Detail card for one player, loaded inline by htmx."""
+    if not _authed(request):
+        return RedirectResponse("/login", status_code=303)
+    lg = leagues.get(league)
+    roster = None
+    conn = league_state.status()
+    if conn["connected"]:
+        try:
+            roster = league_state.attach_values(
+                league_state.my_roster(league), league)
+        except Exception:
+            roster = None
+    return TEMPLATES.TemplateResponse(
+        request, "_player.html",
+        {"p": players.detail(name, lg, roster), "league_id": league})
 
 
 @app.get("/health")
